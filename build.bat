@@ -1,0 +1,1 @@
+docker build . -t espire/nginx:latest -t espire/nginx:1.0.0

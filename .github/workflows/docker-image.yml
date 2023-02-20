@@ -1,0 +1,51 @@
+name: Release - Build & Deploy
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]"'
+
+jobs:
+  build:
+    name: Build & push docker image
+    runs-on: ubuntu-latest
+    env:
+      IMG_NAME: 'nginx'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Info
+        run: echo "Parameters. ${{github.base_ref}}, ${{github.ref_type}}, ${{github.ref}}"
+
+      - name: Docker metadata
+        id: metadata
+        uses: docker/metadata-action@v4
+        with:
+          images: 'nginx'
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Login to dockerhub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push to Docker Hub
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          builder: ${{ steps.buildx.outputs.name }}
+          push: true
+          tags: |
+            espire/nginx:latest
+            espire/nginx:1.0.0
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
